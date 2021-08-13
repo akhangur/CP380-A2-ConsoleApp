@@ -15,17 +15,34 @@ namespace BreadmakerReport
         {
             Console.WriteLine("Welcome to Bread World");
             var BreadmakerDb = new BreadMakerSqliteContext(dbfile);
-            var BMList = BreadmakerDb.Breadmakers
-                // TODO: add LINQ logic ...
-                //       ...
+            var t= BreadmakerDb.Breadmakers
+                .Select(line => new
+                {
+                    detail = line.title,
+                    reviews = line.Reviews.Count(),
+                    avg = (Double)BreadmakerDb.Reviews
+                        .Where(i =>i.BreadmakerId == line.BreadmakerId)
+                        .Select(i => i.stars).Sum() / line.Reviews.Count(),
+                })
                 .ToList();
 
-            Console.WriteLine("[#]  Reviews Average  Adjust    Description");
+            var BMList = t
+                .Select(line => new
+                {
+                    detail = line.detail,
+                    reviews = line.reviews,
+                    avg = line.avg,
+                    adjust = ratingAdjustmentService.Adjust(line.avg, line.reviews)
+                })
+                .OrderByDescending(i => i.adjust)
+                .ToList();
+
+
+            Console.WriteLine("[#]  Reviews  Average  Adjust  Description");
             for (var j = 0; j < 3; j++)
             {
-                var i = BMList[j];
-                // TODO: add output
-                // Console.WriteLine( ... );
+                var line = BMList[j];
+                Console.WriteLine($"[{j + 1}]  {line.reviews,7}  {Math.Round(line.avg, 2),-7}  {Math.Round(line.adjust, 2),-6}   {line.detail}");
             }
         }
     }
